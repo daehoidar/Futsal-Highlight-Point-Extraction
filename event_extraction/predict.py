@@ -23,7 +23,9 @@ def predict(args):
 
     # slide through video in 5s windows
     events = []
-    for t in range(0, int(args.video_length), 5):
+
+    # 클립 10초로 고정
+    for t in range(5, int(args.video_length)-5, 5):
         clips = sample_clips(video, t, 5)
         logits = model(torch.stack(clips).unsqueeze(0).to(args.device))
         cls = torch.argmax(logits, dim=1).item()

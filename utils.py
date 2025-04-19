@@ -1,18 +1,32 @@
 import cv2
-import numpy as np
+from torchvision import transforms
+from PIL import Image
 
-def sample_clips(video_path, start_sec, duration_sec, fps=5):
+def sample_clips(video_path, center_time, clip_duration=10, fps=5):
+
+    start_time = max(0, center_time - clip_duration // 2)
+    end_time = center_time + clip_duration // 2
+
     cap = cv2.VideoCapture(video_path)
-    clips = []
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     video_fps = cap.get(cv2.CAP_PROP_FPS)
-    start_frame = int(start_sec * video_fps)
-    num_sample = int(duration_sec * fps)
-    for i in range(num_sample):
-        frame_id = start_frame + int(i * (video_fps / fps))
-        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_id)
-        ret, frame = cap.read()
-        if not ret: break
-        clips.append(frame)
+    
+    step = int(video_fps // fps)
+    frames = []
+
+    for sec in range(start_time, end_time):
+        frame_idx = int(sec * video_fps)
+        for i in range(0, int(video_fps), step):
+            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx + i)
+            ret, frame = cap.read()
+            if ret:
+                image = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+                transform = transforms.Compose([
+                    transforms.Resize((224, 224)),
+                    transforms.ToTensor()
+                ])
+                frames.append(transform(image))
+            else:
+                break
     cap.release()
-    return clips
+    return frames
