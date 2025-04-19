@@ -54,7 +54,7 @@ def predict(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--video-path', type=str, required=True)
-    parser.add_argument('--model-path', type=str, default='pretrained/event_model_soccernet.pt')
+    parser.add_argument('--model-path', type=str, default='pretrained/event_model_pretrained.pt')
     parser.add_argument('--ball-model', type=str, default='yolov8_ball.pt')
     parser.add_argument('--video-length', type=int, required=True)
     parser.add_argument('--device', type=str, default='cuda')
