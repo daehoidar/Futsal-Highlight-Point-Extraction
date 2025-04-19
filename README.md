@@ -8,7 +8,8 @@
    - 구조: ResNet-18(이미지 특징 추출) + LSTM(시계열 맥락 이해)  
    - 입력: 골·슛 장면 전후 5초를 5 FPS로 샘플링한 클립, `goal`, `shoot`, `none` 레이블  
    - 학습: 직접 라벨링한 풋살 데이터 사용 (train.py)  
-   - 데모: SoccerNet 축구 데이터로 사전 학습된 모델 제공(`pretrained/`)  
+   - 데모: SoccerNet 축구 데이터로 사전 학습된 모델 제공(`pretrained/`) <br/>
+   ⚠️**SoccerNet 데이터의 Non Disclosure Agreement에 따라 pretrained 모델의 상업적인 사용을 금지합니다.**
 
 2. **이벤트 주체 검출**  
    - 구성 요소:
