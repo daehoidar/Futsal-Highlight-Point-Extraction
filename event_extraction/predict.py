@@ -4,6 +4,7 @@ from utils import sample_clips
 from detectors.ball_detection import BallDetector
 from detectors.number_extraction import NumberExtractor
 from detectors.foot_keypoint_extraction import FootKeypointExtractor
+from detectors.person_detection import PersonDetector
 from event_extraction.train import EventModel
 import os
 
@@ -24,8 +25,6 @@ def predict(args):
     events = []
     for t in range(0, int(args.video_length), 5):
         clips = sample_clips(video, t, 5)
-        # preprocess and predict
-        # TODO: implement batch inference
         logits = model(torch.stack(clips).unsqueeze(0).to(args.device))
         cls = torch.argmax(logits, dim=1).item()
         if cls != 2:  # not 'none'
@@ -35,26 +34,42 @@ def predict(args):
     ball = BallDetector(args.ball_model)
     number = NumberExtractor()
     pose = FootKeypointExtractor()
+    person_detector = PersonDetector()
+
     results = []
     for t, cls in events:
-        frames = sample_clips(video, max(0, t-3), 3)
-        bpos = [ball.detect(f) for f in frames]
-        ppos = [pose.extract(f) for f in frames]
-        # compute average distances
-        best = (None, float('inf'))
-        for person_idx in range(len(ppos)):
-            d = sum(((bp[0]-fp[0])**2+(bp[1]-fp[1])**2)**0.5 for bp, fp in zip(bpos, ppos) if bp and fp)
-            if d < best[1]: best = (person_idx, d)
-        # crop that person's bbox and extract number
-        # TODO: implement bbox tracking
-        num = None
-        results.append({'time': t, 'event': cls, 'player': num})
+        frames = sample_clips(video, max(0, t-3), 3)  # 직전 3초
+        avg_distances = []
+
+        for f in frames:
+            balls = ball.detect(f)  # 하나의 위치 반환 가정 (x, y)
+            persons = person_detector.detect(f)  # 각 사람 객체에 대해 (bbox, cropped image)
+            for i, (bbox, cropped_img) in enumerate(persons):
+                number_id = number.extract(cropped_img)
+                foot_kp = pose.extract_from_bbox(f, bbox)  # 해당 bbox 안의 keypoint
+                if balls and foot_kp:
+                    bx, by = balls[0]  # 단일 볼 기준
+                    fx, fy = foot_kp
+                    dist = ((bx - fx)**2 + (by - fy)**2)**0.5
+                    avg_distances.append((number_id, dist))
+
+        # 평균 거리 계산
+        from collections import defaultdict
+        dist_dict = defaultdict(list)
+        for pid, d in avg_distances:
+            if pid is not None:
+                dist_dict[pid].append(d)
+
+        avg_dist_by_player = {pid: sum(ds)/len(ds) for pid, ds in dist_dict.items()}
+        best_player = min(avg_dist_by_player.items(), key=lambda x: x[1])[0] if avg_dist_by_player else None
+        results.append({'time': t, 'event': cls, 'player': best_player})
+
     print(results)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--video-path', type=str, required=True)
-    parser.add_argument('--model-path', type=str, default='pretrained/event_model_pretrained.pt')
+    parser.add_argument('--model-path', type=str, default='pretrained/event_model_soccernet.pt')
     parser.add_argument('--ball-model', type=str, default='yolov8_ball.pt')
     parser.add_argument('--video-length', type=int, required=True)
     parser.add_argument('--device', type=str, default='cuda')
