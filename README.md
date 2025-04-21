@@ -9,6 +9,8 @@
    - 입력: 골·슛 장면 전후 5초를 5 FPS로 샘플링한 클립, `goal`, `shoot`, `none` 레이블  
    - 학습: 직접 라벨링한 풋살 데이터 사용 (train.py)  
    - 데모: SoccerNet 축구 데이터로 사전 학습된 모델 제공(`pretrained/`) <br/>
+   <img src="https://img1.daumcdn.net/thumb/R1280x0/?scode=mtistory2&fname=https%3A%2F%2Fblog.kakaocdn.net%2Fdn%2FbzPAWb%2FbtsNuC4y4Yk%2F56Arx0HdDQTNUapqFzFIL0%2Fimg.png" alt="train_img" width="700"/><br/>
+   Acc: 학습 데이터에 대한 정확도<br/>
    ⚠️**SoccerNet 데이터의 Non Disclosure Agreement에 따라 pretrained 모델의 상업적인 사용을 금지합니다.**
 
 2. **이벤트 주체 검출**  
