@@ -2,6 +2,10 @@ import torch
 import torch.nn as nn
 from torchvision import models
 from torch.utils.data import DataLoader, Dataset
+import numpy as np
+import pandas as pd
+import os
+from pathlib import Path
 
 class EventDataset(Dataset):
     def __init__(self, clips, labels):
@@ -32,10 +36,64 @@ class EventModel(nn.Module):
         out = out[:, -1, :]
         return self.classifier(out)
 
+def load_dataset(data_dir):
+    """
+    Load dataset from data_dir structure:
+    data_dir/
+        clips/
+            clip_0000.npy
+            clip_0001.npy
+            ...
+        labels.csv
+    
+    labels.csv should have columns: 'clip_name', 'label'
+    where label is 0 (none), 1 (goal), or 2 (shoot)
+    """
+    data_dir = Path(data_dir)
+    clips_dir = data_dir / 'clips'
+    labels_file = data_dir / 'labels.csv'
+    
+    # Check if directories/files exist
+    if not clips_dir.exists():
+        raise FileNotFoundError(f"Clips directory not found: {clips_dir}")
+    if not labels_file.exists():
+        raise FileNotFoundError(f"Labels file not found: {labels_file}")
+    
+    # Load labels CSV
+    df = pd.read_csv(labels_file)
+    if 'clip_name' not in df.columns or 'label' not in df.columns:
+        raise ValueError("labels.csv must contain 'clip_name' and 'label' columns")
+    
+    # Load clips in order based on labels.csv
+    clips = []
+    labels = []
+    
+    for idx, row in df.iterrows():
+        clip_name = row['clip_name']
+        label = row['label']
+        
+        # Construct clip path
+        clip_path = clips_dir / clip_name
+        if not clip_path.suffix:
+            clip_path = clips_dir / f"{clip_name}.npy"
+        
+        if not clip_path.exists():
+            print(f"Warning: Clip file not found: {clip_path}, skipping...")
+            continue
+        
+        # Load clip
+        clip = np.load(clip_path)  # Expected shape: [T, H, W, C]
+        clips.append(clip)
+        labels.append(int(label))
+    
+    print(f"Loaded {len(clips)} clips from {data_dir}")
+    return clips, labels
+
 def train(args):
-    # load dataset, split, DataLoader, optim, loss
-    # placeholder: user should implement data loading from labels
-    dataset = EventDataset([...], [...])
+    # Load dataset from data_dir
+    clips, labels = load_dataset(args.data_dir)
+    
+    dataset = EventDataset(clips, labels)
     loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
     model = EventModel(num_classes=3).to(args.device)
     opt = torch.optim.Adam(model.parameters(), lr=args.lr)

@@ -67,6 +67,43 @@ highlight_extraction/
 
 직접 라벨링한 풋살 클립을 사용해 이벤트 탐지 모델을 학습합니다:
 
+### 데이터 구조
+
+학습 데이터는 다음과 같은 구조로 준비되어야 합니다:
+
+```
+/path/to/your/labeled/data/
+├── clips/
+│   ├── clip_0000.npy
+│   ├── clip_0001.npy
+│   ├── clip_0002.npy
+│   └── ...
+└── labels.csv
+```
+
+**clips/ 디렉토리:**
+- 각 `.npy` 파일은 5초 클립을 5 FPS로 샘플링한 프레임들을 포함
+- 배열 형태: `[T, H, W, C]` (T=프레임 수, H=높이, W=너비, C=채널)
+- 예: 5초 × 5 FPS = 25 프레임, 224×224 RGB 이미지 → `[25, 224, 224, 3]`
+
+**labels.csv 파일:**
+- 필수 컬럼: `clip_name`, `label`
+- `clip_name`: 클립 파일 이름 (확장자 포함 또는 제외 가능, 예: `clip_0000.npy` 또는 `clip_0000`)
+- `label`: 이벤트 레이블 정수 값
+  - `0`: none (이벤트 없음)
+  - `1`: goal (골)
+  - `2`: shoot (슛)
+
+예시 `labels.csv`:
+```csv
+clip_name,label
+clip_0000,0
+clip_0001,1
+clip_0002,2
+clip_0003,0
+```
+
+### 학습 실행
 ```bash
 python event_extraction/train.py \
   --train-new \
@@ -79,7 +116,7 @@ python event_extraction/train.py \
 ```
 
 - `--train-new`: 신규 학습 플래그
-- `--data-dir`: 5초 클립(5 FPS)과 레이블(`0: none`, `1: goal`, `2: shoot`)이 포함된 폴더
+- `--data-dir`: 위 구조를 따르는 데이터 디렉토리 경로
 - `--save-path`: 학습된 가중치 저장 경로
 - `--epochs`, `--batch-size`, `--lr`, `--device`: 학습 설정
 
